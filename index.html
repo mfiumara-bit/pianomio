@@ -464,7 +464,10 @@ function saveState() { try { localStorage.setItem('pianomio_v3', JSON.stringify(
 function loadState() { try { const s = localStorage.getItem('pianomio_v3'); if(s) state = JSON.parse(s); } catch(e) {} }
 
 // ═══ DATE UTILS ══════════════════════════════════════════
-function todayStr() { return new Date().toISOString().slice(0,10); }
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 function getMondayOf(offset) {
   const now = new Date(); now.setHours(0,0,0,0);
@@ -678,7 +681,11 @@ function renderWeek() {
     // Merge manual tasks with computed tasks
     const manualTasks = (dayObj.tasks || []).filter(t => !t.source);
     const computed = computedTasksForDate(dateStr);
-    const allTasks = [...manualTasks, ...computed];
+    // Render manual tasks with their real state index, computed tasks with their sourceId
+    const allTasksHtml = [
+      ...manualTasks.map((t, mti) => renderTaskItem(t, i, mti, manualTasks.length)),
+      ...computed.map(t => renderTaskItem(t, i, -1, manualTasks.length))
+    ].join('');
 
     // Important: manual takes precedence over computed
     const computedImp = computedImportantForDate(dateStr);
@@ -706,7 +713,7 @@ function renderWeek() {
         <div>
           <div class="section-label">Task</div>
           <div class="task-list" id="tasks-${i}">
-            ${allTasks.map((t,ti)=>renderTaskItem(t,i,ti,manualTasks.length)).join('')}
+            ${allTasksHtml}
           </div>
           <div class="add-task-row">
             <input class="add-task-input" type="text" placeholder="+ task manuale…" id="task-input-${i}" onkeydown="if(event.key==='Enter')addManualTask(${i})">
@@ -736,7 +743,8 @@ function renderTaskItem(t, di, ti, manualCount) {
   </div>` : '';
 
   const isManual = !t.source;
-  // For computed tasks: toggle/delete work via source
+  // ti for manual tasks is the index within manualTasks array (= state weeks tasks)
+  // for computed tasks use sourceId
   const toggleFn = isManual ? `toggleGridTask(${di},${ti})` : `toggleComputedTask('${t.sourceId}','${t.source||''}','${t.projectId||''}')`;
   const deleteFn = isManual ? `deleteGridTask(${di},${ti})` : `deleteComputedTask('${t.sourceId}','${t.source||''}')`;
   const editFn = isManual ? `openEditGridTask(${di},${ti})` : '';
@@ -1047,10 +1055,12 @@ function deleteSubtask(pi, si) {
 function openEditSubtask(pi, si) {
   const sub = state.projects[pi].subtasks[si];
   editContext = { type: 'subtask', pi, si };
+  document.getElementById('edit-modal-title').textContent = 'Modifica sotto-task';
   document.getElementById('edit-text').value = sub.text;
   document.getElementById('edit-date').value = sub.date || '';
-  document.getElementById('edit-repeat-row').style.display = 'none';
-  document.getElementById('edit-subs-section').style.display = 'none';
+  document.getElementById('edit-repeat').value = '';
+  document.getElementById('edit-custom-row').style.display = 'none';
+  document.querySelector('.edit-modal-subtasks').style.display = 'none';
   document.getElementById('edit-modal').classList.add('open');
 }
 
@@ -1492,6 +1502,8 @@ function openEditGridTask(di, ti) {
 
 function closeEditModal() {
   document.getElementById('edit-modal').classList.remove('open');
+  document.getElementById('edit-modal-title').textContent = 'Modifica task';
+  document.querySelector('.edit-modal-subtasks').style.display = '';
   editContext = null;
 }
 
