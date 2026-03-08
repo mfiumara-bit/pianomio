@@ -662,8 +662,7 @@ function carryForward() {
         dayObj.important = '';
         dayObj.importantDone = false;
         dayObj.importantCarriedFrom = null;
-      }
-    });
+      }    });
   });
   saveState();
 }
@@ -701,7 +700,7 @@ function renderWeek() {
     const computedImp = computedImportantForDate(dateStr);
     const importantText = dayObj.important || (computedImp ? computedImp.text : '');
     const importantDone = dayObj.importantDone || false;
-    const importantCarried = (!dayObj.important && computedImp && computedImp.carriedFrom) ? computedImp.carriedFrom : null;
+    const importantCarried = dayObj.importantCarriedFrom || (!dayObj.important && computedImp ? computedImp.carriedFrom : null);
 
     col.innerHTML = `
       <div class="day-header">
@@ -753,11 +752,10 @@ function renderTaskItem(t, di, ti, manualCount) {
   </div>` : '';
 
   const isManual = !t.source;
-  // ti for manual tasks is the index within manualTasks array (= state weeks tasks)
-  // for computed tasks use sourceId
   const toggleFn = isManual ? `toggleGridTask(${di},${ti})` : `toggleComputedTask('${t.sourceId}','${t.source||''}','${t.projectId||''}')`;
   const deleteFn = isManual ? `deleteGridTask(${di},${ti})` : `deleteComputedTask('${t.sourceId}','${t.source||''}')`;
   const editFn = isManual ? `openEditGridTask(${di},${ti})` : '';
+  const flagFn = isManual ? `flagTaskAsImportant(${di},${ti})` : `flagComputedAsImportant('${t.sourceId}','${t.source||''}','${t.projectId||''}',${di})`;
 
   return `<div class="task-item${t.done?' done':''}" style="flex-wrap:wrap">
     <div class="task-check" onclick="${toggleFn}" style="${t.done?'background:var(--green);border-color:var(--green);':''}">
@@ -766,10 +764,43 @@ function renderTaskItem(t, di, ti, manualCount) {
     <span class="task-text">${escHtml(t.text)}</span>
     ${subs.length ? `<span style="font-size:8px;color:var(--ink-light);opacity:0.6">${subsDone}/${subs.length}</span>` : ''}
     ${badge}
+    <span style="cursor:pointer;font-size:10px;opacity:0.3;transition:opacity 0.15s;" onclick="${flagFn}" title="Imposta come priorità del giorno">☆</span>
     ${editFn ? `<span class="task-edit-btn" onclick="${editFn}" title="Modifica">✎</span>` : ''}
     <span class="task-del" onclick="${deleteFn}">✕</span>
     ${subsHtml}
   </div>`;
+}
+
+function flagTaskAsImportant(di, ti) {
+  const dayObj = getWeekData(currentWeekOffset).days[di];
+  const t = dayObj.tasks.filter(x => !x.source)[ti];
+  if (!t) return;
+  if (dayObj.important) { if (!confirm('Sostituire la priorità esistente?')) return; }
+  dayObj.important = t.text;
+  dayObj.importantDone = false;
+  dayObj.importantCarriedFrom = null;
+  // remove from task list
+  const realIdx = dayObj.tasks.indexOf(t);
+  dayObj.tasks.splice(realIdx, 1);
+  saveState(); renderWeek();
+}
+
+function flagComputedAsImportant(sourceId, source, projectId, di) {
+  const monday = getMondayOf(currentWeekOffset);
+  const d = new Date(monday); d.setDate(monday.getDate()+di);
+  const dateStr = dateToStr(d);
+  const dayObj = getWeekData(currentWeekOffset).days[di];
+  if (dayObj.important) { if (!confirm('Sostituire la priorità esistente?')) return; }
+  // find text from source
+  let text = '';
+  if (source === 'inbox') {
+    const item = state.inbox.find(i => i.id === sourceId);
+    if (item) { item.priority = true; text = item.text; }
+  } else if (source === 'project') {
+    const proj = state.projects.find(p => p.id === projectId);
+    if (proj) { const sub = proj.subtasks.find(s => s.id === sourceId); if (sub) { sub.priority = true; text = sub.text; } }
+  }
+  saveState(); renderWeek(); renderInbox(); renderProjects();
 }
 
 function toggleComputedTask(sourceId, source, projectId) {
@@ -1020,7 +1051,7 @@ function renderProjects() {
 
     return `<div class="project-card">
       <div class="project-top">
-        <span class="project-name-text">${escHtml(proj.name)}</span>
+        <span class="project-name-text" onclick="editProjectName(${pi})" title="Clicca per rinominare" style="cursor:pointer;">${escHtml(proj.name)}</span>
         <div class="progress-wrap">
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
           <span class="progress-pct">${pct}%</span>
@@ -1062,6 +1093,14 @@ function deleteSubtask(pi, si) {
   saveState(); renderProjects(); renderWeek();
 }
 
+function editProjectName(pi) {
+  const name = prompt('Rinomina progetto:', state.projects[pi].name);
+  if (name && name.trim()) {
+    state.projects[pi].name = name.trim();
+    saveState(); renderProjects(); renderWeek();
+  }
+}
+
 function openEditSubtask(pi, si) {
   const sub = state.projects[pi].subtasks[si];
   editContext = { type: 'subtask', pi, si };
@@ -1071,6 +1110,20 @@ function openEditSubtask(pi, si) {
   document.getElementById('edit-repeat').value = '';
   document.getElementById('edit-custom-row').style.display = 'none';
   document.querySelector('.edit-modal-subtasks').style.display = 'none';
+  // Add/update move-to-project row
+  let moveRow = document.getElementById('edit-move-project-row');
+  if (!moveRow) {
+    moveRow = document.createElement('div');
+    moveRow.id = 'edit-move-project-row';
+    moveRow.className = 'edit-modal-row';
+    moveRow.innerHTML = `<label style="font-size:11px;color:var(--ink-light);flex:none">Sposta in:</label><select id="edit-move-project-sel" style="flex:1"></select>`;
+    document.querySelector('.edit-modal .modal-btns').before(moveRow);
+  }
+  const sel = document.getElementById('edit-move-project-sel');
+  sel.innerHTML = state.projects.map((p, idx) =>
+    `<option value="${idx}" ${idx===pi?'selected':''}>${escHtml(p.name)}</option>`
+  ).join('');
+  moveRow.style.display = 'flex';
   document.getElementById('edit-modal').classList.add('open');
 }
 
@@ -1079,6 +1132,12 @@ function saveEditSubtask() {
   const sub = state.projects[pi].subtasks[si];
   sub.text = document.getElementById('edit-text').value.trim() || sub.text;
   sub.date = document.getElementById('edit-date').value || null;
+  const targetPi = parseInt(document.getElementById('edit-move-project-sel')?.value ?? pi);
+  if (targetPi !== pi) {
+    // move subtask to different project
+    state.projects[pi].subtasks.splice(si, 1);
+    state.projects[targetPi].subtasks.push(sub);
+  }
   saveState(); closeEditModal(); renderProjects(); renderWeek();
 }
 
@@ -1514,6 +1573,8 @@ function closeEditModal() {
   document.getElementById('edit-modal').classList.remove('open');
   document.getElementById('edit-modal-title').textContent = 'Modifica task';
   document.querySelector('.edit-modal-subtasks').style.display = '';
+  const moveRow = document.getElementById('edit-move-project-row');
+  if (moveRow) moveRow.style.display = 'none';
   editContext = null;
 }
 
