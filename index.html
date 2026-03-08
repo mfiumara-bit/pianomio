@@ -469,6 +469,10 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function dateToStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function getMondayOf(offset) {
   const now = new Date(); now.setHours(0,0,0,0);
   const day = now.getDay();
@@ -636,7 +640,7 @@ function carryForward() {
         const {day: targetDay} = ensureWeekDay(td);
         manualIncomplete.forEach(t => {
           const dup = targetDay.tasks.some(x => !x.source && x.text === t.text && !x.done);
-          if (!dup) targetDay.tasks.push({ ...t, carriedFrom: slot.toISOString().slice(0,10) });
+          if (!dup) targetDay.tasks.push({ ...t, carriedFrom: dateToStr(slot) });
         });
         // Remove incomplete manual tasks from origin day
         dayObj.tasks = dayObj.tasks.filter(t => t.source || t.done);
@@ -647,7 +651,7 @@ function carryForward() {
         const {day: targetDay} = ensureWeekDay(td);
         if (!targetDay.important) {
           targetDay.important = dayObj.important;
-          targetDay.importantCarriedFrom = slot.toISOString().slice(0,10);
+          targetDay.importantCarriedFrom = dateToStr(slot);
         }
         dayObj.important = '';
         dayObj.importantDone = false;
@@ -672,7 +676,7 @@ function renderWeek() {
 
   for (let i=0; i<7; i++) {
     const d = new Date(monday); d.setDate(monday.getDate()+i);
-    const dateStr = d.toISOString().slice(0,10);
+    const dateStr = dateToStr(d);
     const dayObj = weekData.days[i];
     const cls = 'day-col' + (isToday(d)?' today':(isPast(d)?' past':''));
     const col = document.createElement('div');
@@ -798,7 +802,7 @@ function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function toggleImportant(di) {
   const monday = getMondayOf(currentWeekOffset);
   const d = new Date(monday); d.setDate(monday.getDate()+di);
-  const dateStr = d.toISOString().slice(0,10);
+  const dateStr = dateToStr(d);
   const dayObj = getWeekData(currentWeekOffset).days[di];
 
   if (dayObj.important) {
@@ -953,7 +957,7 @@ function nextOccurrence(item) {
     if (unit === 'months') d.setMonth(d.getMonth() + n);
     else d.setDate(d.getDate() + (days || n));
   }
-  return d.toISOString().slice(0,10);
+  return dateToStr(d);
 }
 
 function toggleInbox(i) {
@@ -1184,7 +1188,7 @@ function exportICS() {
     state.weeks[weekKey].days.forEach((dayObj, di) => {
       if (!dayObj.important || dayObj.importantDone) return;
       const d = new Date(monday); d.setDate(monday.getDate()+di);
-      const dateStr = d.toISOString().slice(0,10);
+      const dateStr = dateToStr(d);
       if (dateStr < todayStr()) return; // solo future o oggi
       lines.push('BEGIN:VTODO');
       lines.push(`UID:${uid()}`);
