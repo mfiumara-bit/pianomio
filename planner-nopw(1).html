@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PianoMio</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231D3557'/><text y='72' x='50' text-anchor='middle' font-size='60' font-family='Georgia,serif' fill='%23C84B2F' font-style='italic'>P</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --bg: #F5F0E8;
+  --paper: #FDFAF4;
+  --ink: #1A1510;
+  --ink-light: #6B6357;
+  --accent: #C84B2F;
+  --accent-soft: #F0DDD8;
+  --green: #2D6A4F;
+  --green-soft: #D8EDD6;
+  --blue: #1D3557;
+  --blue-soft: #D6E4F0;
+  --orange: #E07B2A;
+  --orange-soft: #FAEBD7;
+  --purple: #5C3D8F;
+  --purple-soft: #EDE7F6;
+  --line: #E8E0D0;
+  --shadow: rgba(26,21,16,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+  padding: 24px 16px 80px;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(200,75,47,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(29,53,87,0.06) 0%, transparent 50%);
+}
+header {
+  max-width: 1100px; margin: 0 auto 24px;
+  display: flex; align-items: baseline; justify-content: space-between;
+  border-bottom: 2px solid var(--ink); padding-bottom: 12px;
+}
+.logo { font-family: 'DM Serif Display', serif; font-size: 28px; letter-spacing: -0.5px; }
+.logo span { color: var(--accent); font-style: italic; }
+.week-nav { display: flex; align-items: center; gap: 10px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink-light); }
+.week-nav button { background: none; border: 1px solid var(--line); border-radius: 4px; width: 28px; height: 28px; cursor: pointer; font-size: 14px; color: var(--ink); transition: all 0.15s; }
+.week-nav button:hover { background: var(--ink); color: var(--paper); }
+.btn-today { width: auto !important; padding: 0 8px !important; font-size: 10px !important; font-family: 'DM Mono', monospace; }
+
+.sync-bar {
+  max-width: 1100px; margin: 0 auto 20px;
+  background: var(--blue-soft); border: 1px solid #b0c8e0; border-radius: 8px;
+  padding: 10px 16px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--blue);
+}
+.sync-bar span { flex: 1; }
+.sync-btn { border: 1px solid var(--blue); border-radius: 6px; background: none; color: var(--blue); font-family: 'DM Mono', monospace; font-size: 10px; padding: 5px 12px; cursor: pointer; transition: all 0.15s; }
+.sync-btn:hover, .sync-btn.filled { background: var(--blue); color: white; }
+
+.main { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tab { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.5px; padding: 8px 18px; cursor: pointer; border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; transition: all 0.15s; color: var(--ink-light); background: none; }
+.tab.active { border-color: var(--line); border-bottom-color: var(--bg); background: var(--bg); color: var(--ink); font-weight: 500; }
+.tab:hover:not(.active) { color: var(--ink); }
+.tab-badge { display: inline-block; background: var(--accent); color: white; border-radius: 10px; padding: 0 5px; font-size: 9px; margin-left: 5px; vertical-align: middle; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* INBOX ALWAYS VISIBLE BAR */
+.inbox-bar-always {
+  background: var(--paper); border-radius: 10px; border: 1px solid var(--line);
+  box-shadow: 0 2px 8px var(--shadow); margin-bottom: 12px; overflow: hidden;
+}
+.inbox-bar-top {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  border-bottom: 1px solid var(--line); background: #ECEAE4; flex-wrap: wrap;
+}
+.inbox-bar-top input[type=text] {
+  flex: 1; min-width: 160px; background: white; border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px;
+  color: var(--ink); outline: none;
+}
+.inbox-bar-top input[type=text]::placeholder { color: var(--ink-light); opacity: 0.6; }
+.inbox-bar-top input[type=text]:focus { border-color: var(--ink-light); }
+.inbox-bar-top input[type=date] {
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
+  font-family: 'DM Mono', monospace; font-size: 11px; background: white;
+  outline: none; cursor: pointer; color: var(--ink);
+}
+.inbox-bar-top select {
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
+  font-family: 'DM Mono', monospace; font-size: 11px; background: white;
+  outline: none; color: var(--ink); cursor: pointer;
+}
+.inbox-bar-top select option { background: white; color: var(--ink); }
+.inbox-bar-top .btn-add { background: var(--ink); border: none; color: white; border-radius: 6px; padding: 6px 14px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
+.inbox-bar-top .btn-add:hover { opacity: 0.85; }
+.inbox-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px; min-height: 0; }
+.inbox-chips:empty { display: none; }
+.inbox-chip-item {
+  display: flex; align-items: center; gap: 6px; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 20px; padding: 4px 10px 4px 12px;
+  font-size: 12px; animation: popIn 0.2s ease;
+}
+.inbox-chip-item.done-chip .chip-text { text-decoration: line-through; opacity: 0.4; }
+.chip-check { width: 12px; height: 12px; border: 1.5px solid var(--ink-light); border-radius: 3px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.inbox-chip-item.done-chip .chip-check { background: var(--green); border-color: var(--green); }
+.inbox-chip-item.done-chip .chip-check::after { display: block; }
+.chip-check::after { content: ''; display: none; width: 6px; height: 4px; border-left: 1.5px solid white; border-bottom: 1.5px solid white; transform: rotate(-45deg) translate(1px,-1px); }
+.chip-text { font-size: 12px; }
+.chip-date { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-light); }
+.chip-date.overdue { color: var(--accent); }
+.chip-repeat { font-size: 9px; color: var(--green); }
+.chip-del { cursor: pointer; opacity: 0.3; font-size: 10px; transition: opacity 0.15s; }
+.chip-del:hover { opacity: 1; color: var(--accent); }
+
+/* DAY CELLS SCROLLABLE */
+.day-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.day-body::-webkit-scrollbar { width: 3px; }
+.day-body::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+.day-num-btn { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--ink-light); cursor: pointer; border: none; background: none; padding: 0; transition: color 0.15s; }
+.day-num-btn:hover { color: var(--accent); }
+.today .day-num-btn { color: var(--accent); }
+
+/* DAY VIEW MODAL */
+.day-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,21,16,0.6); z-index: 200; align-items: flex-start; justify-content: center; padding-top: 40px; }
+.day-modal-overlay.open { display: flex; }
+.day-modal { background: var(--paper); border-radius: 14px; width: 520px; max-width: 95vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 30px 80px rgba(0,0,0,0.25); }
+.day-modal-header { padding: 18px 24px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; justify-content: space-between; position: sticky; top: 0; background: var(--paper); z-index: 1; }
+.day-modal-title { font-family: 'DM Serif Display', serif; font-size: 22px; }
+.day-modal-close { cursor: pointer; font-size: 18px; opacity: 0.4; transition: opacity 0.15s; border: none; background: none; }
+.day-modal-close:hover { opacity: 1; }
+.day-modal-body { padding: 16px 24px 24px; display: flex; flex-direction: column; gap: 14px; }
+.day-modal-section { display: flex; flex-direction: column; gap: 6px; }
+.day-modal-section .section-label { font-size: 10px; }
+.day-modal-important { background: #FFF9C4; border-left: 3px solid #F9A825; border-radius: 8px; padding: 10px 12px; display: flex; align-items: flex-start; gap: 8px; }
+.day-modal-important textarea { flex: 1; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; resize: none; outline: none; color: var(--ink); line-height: 1.5; min-height: 40px; }
+.day-modal-task-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 6px; transition: background 0.15s; }
+.day-modal-task-item:hover { background: var(--line); }
+.day-modal-task-item.done .task-text { text-decoration: line-through; opacity: 0.35; }
+.day-modal-add-row { display: flex; gap: 6px; margin-top: 4px; }
+.day-modal-add-input { flex: 1; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-family: 'DM Sans', sans-serif; font-size: 12px; background: var(--bg); outline: none; }
+.day-modal-add-input:focus { border-color: var(--ink-light); }
+.day-modal-add-btn { background: var(--ink); color: white; border: none; border-radius: 6px; padding: 6px 14px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; transition: opacity 0.15s; }
+.day-modal-add-btn:hover { opacity: 0.8; }
+
+@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* WEEK GRID */
+.week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.day-col { background: var(--paper); border-radius: 10px; border: 1px solid var(--line); overflow: hidden; box-shadow: 0 2px 8px var(--shadow); transition: box-shadow 0.2s; min-height: 180px; }
+.day-col.today { border-color: var(--accent); border-width: 2px; }
+.day-col.past { opacity: 0.75; }
+.day-header { padding: 8px 10px 6px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; }
+.day-name { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 500; }
+.today .day-name { color: var(--accent); }
+.section-label { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-light); margin-bottom: 2px; }
+.important-box { background: #FFF9C4; border-left: 3px solid #F9A825; border-radius: 6px; padding: 6px 8px; display: flex; align-items: flex-start; gap: 6px; }
+.important-box textarea { flex: 1; min-height: 30px; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 11px; resize: none; outline: none; color: var(--ink); line-height: 1.4; }
+
+.task-list { display: flex; flex-direction: column; gap: 3px; }
+.task-item { display: flex; align-items: flex-start; gap: 5px; padding: 3px 4px; border-radius: 4px; transition: background 0.15s; cursor: default; }
+.task-item:hover { background: var(--line); }
+.task-item.done .task-text { text-decoration: line-through; opacity: 0.35; }
+.task-check { width: 13px; height: 13px; border: 1.5px solid var(--ink-light); border-radius: 3px; cursor: pointer; flex-shrink: 0; margin-top: 2px; transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
+.task-item.done .task-check { background: var(--green); border-color: var(--green); }
+.task-item.done .task-check::after { display: block; }
+.task-check::after { content: ''; display: none; width: 6px; height: 4px; border-left: 1.5px solid white; border-bottom: 1.5px solid white; transform: rotate(-45deg) translate(1px,-1px); }
+.task-text { font-size: 11px; line-height: 1.4; flex: 1; }
+.task-source { font-size: 8px; padding: 1px 4px; border-radius: 3px; flex-shrink: 0; margin-top: 2px; white-space: nowrap; }
+.task-source.inbox-src { background: var(--blue-soft); color: var(--blue); }
+.task-source.project-src { background: var(--purple-soft); color: var(--purple); }
+.task-source.carried-src { background: var(--accent-soft); color: var(--accent); }
+.task-del { opacity: 0; cursor: pointer; font-size: 9px; color: var(--accent); transition: opacity 0.15s; flex-shrink: 0; margin-top: 2px; }
+.task-item:hover .task-del { opacity: 0.5; }
+.task-del:hover { opacity: 1 !important; }
+.add-task-row { display: flex; gap: 4px; margin-top: 2px; }
+.add-task-input { flex: 1; border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; font-family: 'DM Sans', sans-serif; font-size: 10px; background: transparent; outline: none; transition: border-color 0.15s; }
+.add-task-input:focus { border-color: var(--ink-light); }
+.add-task-btn { border: 1px solid var(--line); border-radius: 4px; background: none; width: 20px; height: 20px; cursor: pointer; font-size: 13px; color: var(--ink-light); transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
+.add-task-btn:hover { background: var(--ink); color: white; border-color: var(--ink); }
+
+/* INBOX PANEL */
+.section-box { background: var(--paper); border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 2px 8px var(--shadow); overflow: hidden; }
+.section-box-header { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+.section-box-header h2 { font-family: 'DM Serif Display', serif; font-size: 18px; }
+.add-row { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--bg); flex-wrap: wrap; align-items: center; }
+.add-row input[type=text] { flex: 1; min-width: 160px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--paper); outline: none; }
+.add-row input[type=text]:focus { border-color: var(--ink-light); }
+.add-row input[type=date] { border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font-family: 'DM Mono', monospace; font-size: 11px; background: var(--paper); outline: none; cursor: pointer; color: var(--ink); }
+.add-row input[type=date]:focus { border-color: var(--ink-light); }
+.btn-add { background: var(--ink); color: white; border: none; border-radius: 6px; padding: 7px 16px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
+.btn-add:hover { opacity: 0.8; }
+.btn-new { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; font-family: 'DM Mono', monospace; font-size: 10px; cursor: pointer; transition: all 0.15s; }
+.btn-new:hover { background: var(--ink); color: white; border-color: var(--ink); }
+
+.inbox-list { display: flex; flex-direction: column; }
+.inbox-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); transition: background 0.15s; }
+.inbox-item:last-child { border-bottom: none; }
+.inbox-item:hover { background: var(--bg); }
+.inbox-item.done-inbox .inbox-text { text-decoration: line-through; opacity: 0.4; }
+.inbox-check { width: 14px; height: 14px; border: 1.5px solid var(--ink-light); border-radius: 3px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.inbox-item.done-inbox .inbox-check { background: var(--green); border-color: var(--green); }
+.inbox-item.done-inbox .inbox-check::after { display: block; }
+.inbox-check::after { content: ''; display: none; width: 7px; height: 5px; border-left: 1.5px solid white; border-bottom: 1.5px solid white; transform: rotate(-45deg) translate(1px,-1px); }
+.inbox-text { flex: 1; font-size: 13px; }
+.inbox-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink-light); white-space: nowrap; }
+.inbox-date.overdue { color: var(--accent); font-weight: 500; }
+.item-del { opacity: 0.2; cursor: pointer; font-size: 11px; transition: opacity 0.15s; }
+.inbox-item:hover .item-del { opacity: 0.5; }
+.item-del:hover { opacity: 1 !important; color: var(--accent); }
+.empty-state { text-align: center; padding: 30px; color: var(--ink-light); font-size: 13px; opacity: 0.5; }
+
+/* PROJECTS */
+.project-card { border-bottom: 1px solid var(--line); padding: 14px 20px; }
+.project-card:last-child { border-bottom: none; }
+.project-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.project-name-text { font-weight: 500; font-size: 15px; flex: 1; }
+.progress-wrap { display: flex; align-items: center; gap: 8px; }
+.progress-bar { width: 80px; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.3s; }
+.progress-pct { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink-light); }
+.proj-del-btn { opacity: 0.2; cursor: pointer; font-size: 12px; transition: opacity 0.15s; }
+.project-card:hover .proj-del-btn { opacity: 0.4; }
+.proj-del-btn:hover { opacity: 1 !important; color: var(--accent); }
+
+.subtask-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; padding-left: 4px; }
+.subtask-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 5px; transition: background 0.15s; }
+.subtask-item:hover { background: var(--bg); }
+.subtask-item.done-sub .subtask-text { text-decoration: line-through; opacity: 0.4; }
+.subtask-item.blocked { opacity: 0.5; }
+.subtask-check { width: 13px; height: 13px; border: 1.5px solid var(--ink-light); border-radius: 3px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.subtask-item.done-sub .subtask-check { background: var(--green); border-color: var(--green); }
+.subtask-item.done-sub .subtask-check::after { display: block; }
+.subtask-check::after { content: ''; display: none; width: 6px; height: 4px; border-left: 1.5px solid white; border-bottom: 1.5px solid white; transform: rotate(-45deg) translate(1px,-1px); }
+.subtask-item.blocked .subtask-check { cursor: not-allowed; border-style: dashed; }
+.subtask-text { font-size: 12px; flex: 1; }
+.subtask-date { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-light); white-space: nowrap; }
+.subtask-date.overdue { color: var(--accent); }
+.blocked-label { font-size: 9px; color: var(--orange); background: var(--orange-soft); border-radius: 3px; padding: 1px 5px; white-space: nowrap; }
+.subtask-del { opacity: 0; cursor: pointer; font-size: 9px; transition: opacity 0.15s; }
+.subtask-item:hover .subtask-del { opacity: 0.4; }
+.subtask-del:hover { opacity: 1 !important; color: var(--accent); }
+
+.add-subtask-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding-left: 4px; margin-top: 4px; }
+.add-subtask-row input[type=text] { flex: 1; min-width: 120px; border: none; border-bottom: 1px dashed var(--line); background: none; font-family: 'DM Sans', sans-serif; font-size: 11px; padding: 3px 0; outline: none; }
+.add-subtask-row input[type=date] { border: none; border-bottom: 1px dashed var(--line); background: none; font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 0; outline: none; cursor: pointer; color: var(--ink-light); }
+.dep-select { border: none; border-bottom: 1px dashed var(--line); background: none; font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 0; outline: none; color: var(--ink-light); max-width: 150px; }
+.add-subtask-btn { background: none; border: none; cursor: pointer; font-size: 16px; color: var(--ink-light); transition: color 0.15s; line-height: 1; }
+.add-subtask-btn:hover { color: var(--green); }
+
+/* EDIT MODAL */
+.edit-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,21,16,0.5); z-index: 300; align-items: center; justify-content: center; }
+.edit-modal-overlay.open { display: flex; }
+.edit-modal { background: var(--paper); border-radius: 12px; padding: 24px; width: 420px; max-width: 95vw; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+.edit-modal h3 { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 14px; }
+.edit-modal input, .edit-modal select { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; margin-bottom: 10px; outline: none; background: var(--bg); color: var(--ink); }
+.edit-modal input:focus, .edit-modal select:focus { border-color: var(--ink); }
+.edit-modal-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.edit-modal-row input, .edit-modal-row select { margin-bottom: 0; }
+.edit-modal-subtasks { margin-bottom: 12px; }
+.edit-modal-subtasks .sub-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-light); margin-bottom: 6px; }
+.edit-sub-item { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.edit-sub-item:last-child { border-bottom: none; }
+.edit-sub-check { width: 12px; height: 12px; border: 1.5px solid var(--ink-light); border-radius: 3px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.edit-sub-done .edit-sub-check { background: var(--green); border-color: var(--green); }
+.edit-sub-done .edit-sub-check::after { display: block; }
+.edit-sub-check::after { content: ''; display: none; width: 5px; height: 3px; border-left: 1.5px solid white; border-bottom: 1.5px solid white; transform: rotate(-45deg) translate(1px,-1px); }
+.edit-sub-text { flex: 1; font-size: 12px; }
+.edit-sub-done .edit-sub-text { text-decoration: line-through; opacity: 0.4; }
+.edit-sub-del { cursor: pointer; opacity: 0.3; font-size: 10px; transition: opacity 0.15s; }
+.edit-sub-del:hover { opacity: 1; color: var(--accent); }
+.edit-sub-add { display: flex; gap: 6px; margin-top: 6px; }
+.edit-sub-add input { flex: 1; border: 1px dashed var(--line); border-radius: 5px; padding: 5px 8px; font-size: 12px; font-family: 'DM Sans', sans-serif; background: var(--bg); outline: none; color: var(--ink); margin-bottom: 0; }
+.edit-sub-add button { background: none; border: 1px solid var(--line); border-radius: 5px; padding: 4px 10px; font-size: 12px; cursor: pointer; transition: all 0.15s; color: var(--ink-light); }
+.edit-sub-add button:hover { background: var(--ink); color: white; border-color: var(--ink); }
+
+/* CHIP EXPAND */
+.chip-expand { cursor: pointer; font-size: 9px; color: var(--ink-light); opacity: 0.5; transition: opacity 0.15s; }
+.chip-expand:hover { opacity: 1; }
+.chip-subtasks { width: 100%; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; padding-left: 18px; }
+.chip-sub-item { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.chip-sub-check { width: 10px; height: 10px; border: 1.5px solid var(--ink-light); border-radius: 2px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.chip-sub-done .chip-sub-check { background: var(--green); border-color: var(--green); }
+.chip-sub-done .chip-sub-check::after { display: block; }
+.chip-sub-check::after { content: ''; display: none; width: 5px; height: 3px; border-left: 1.5px solid white; border-bottom: 1.5px solid white; transform: rotate(-45deg) translate(1px,-1px); }
+.chip-sub-done .chip-sub-text { text-decoration: line-through; opacity: 0.4; }
+
+/* TASK EDIT INLINE */
+.task-edit-btn { opacity: 0; cursor: pointer; font-size: 9px; color: var(--ink-light); transition: opacity 0.15s; flex-shrink: 0; margin-top: 2px; }
+.task-item:hover .task-edit-btn { opacity: 0.4; }
+.task-edit-btn:hover { opacity: 1 !important; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,21,16,0.5); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--paper); border-radius: 12px; padding: 24px; width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+.modal h3 { font-family: 'DM Serif Display', serif; font-size: 20px; margin-bottom: 16px; }
+.modal input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; margin-bottom: 12px; outline: none; background: var(--bg); }
+.modal input:focus { border-color: var(--ink); }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-btns button { border: none; border-radius: 6px; padding: 8px 18px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; transition: opacity 0.15s; }
+.btn-cancel { background: var(--line); color: var(--ink); }
+.btn-confirm { background: var(--ink); color: white; }
+.btn-cancel:hover, .btn-confirm:hover { opacity: 0.8; }
+
+.footer { max-width: 1100px; margin: 24px auto 0; text-align: center; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink-light); opacity: 0.4; }
+
+@media (max-width: 800px) { .week-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 500px) { .week-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<body>
+
+<header>
+  <div class="logo">Piano<span>Mio</span></div>
+  <div class="week-nav">
+    <button onclick="changeWeek(-1)">‹</button>
+    <span id="week-label"></span>
+    <button onclick="changeWeek(1)">›</button>
+    <button class="btn-today" onclick="goToday()">oggi</button>
+  </div>
+</header>
+
+<div class="sync-bar" id="sync-bar">
+  <span id="sync-status">☁️ <strong>Google Drive</strong> — non connesso</span>
+  <button class="sync-btn filled" id="btn-gdrive-connect" onclick="gdriveSignIn()">Connetti Google Drive</button>
+  <button class="sync-btn" id="btn-gdrive-sync" onclick="gdriveSave()" style="display:none">💾 Salva su Drive</button>
+  <button class="sync-btn" id="btn-gdrive-disconnect" onclick="gdriveSignOut()" style="display:none;opacity:0.6">Disconnetti</button>
+  <span style="opacity:0.4;font-size:10px;margin:0 4px">|</span>
+  <button class="sync-btn" onclick="exportData()">⬇ JSON</button>
+  <button class="sync-btn" onclick="document.getElementById('import-file').click()">⬆ JSON</button>
+  <button class="sync-btn" onclick="exportICS()">📅 .ics</button>
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+</div>
+
+<div class="main">
+
+  <!-- INBOX SEMPRE VISIBILE -->
+  <div class="inbox-bar-always">
+    <div class="inbox-bar-top">
+      <input type="text" id="inbox-text" placeholder="Aggiungi task…" onkeydown="if(event.key==='Enter')addInboxItem()">
+      <input type="date" id="inbox-date" title="Data scadenza">
+      <select id="inbox-repeat">
+        <option value="">no ripetizione</option>
+        <option value="daily">ogni giorno</option>
+        <option value="weekly">ogni settimana</option>
+        <option value="monthly">ogni mese</option>
+        <option value="custom">ogni X…</option>
+      </select>
+      <input type="number" id="inbox-repeat-days" min="1" max="365" placeholder="1"
+        style="display:none;width:60px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:11px;background:white;outline:none;color:var(--ink);">
+      <select id="inbox-repeat-unit" style="display:none;border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:11px;background:white;outline:none;color:var(--ink);cursor:pointer;">
+        <option value="days">giorni</option>
+        <option value="weeks">settimane</option>
+        <option value="months">mesi</option>
+      </select>
+      <button class="btn-add" onclick="addInboxItem()">+ Aggiungi</button>
+    </div>
+    <div class="inbox-chips" id="inbox-chips"></div>
+  </div>
+
+  <!-- TABS: SETTIMANA / PROGETTI -->
+  <div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('griglia',this)">📅 Settimana</button>
+      <button class="tab" onclick="switchTab('progetti',this)">🗂 Progetti</button>
+    </div>
+
+    <!-- GRIGLIA -->
+    <div class="panel active" id="panel-griglia" style="padding-top:12px">
+      <div class="week-grid" id="week-grid"></div>
+    </div>
+
+    <!-- PROGETTI -->
+    <div class="panel" id="panel-progetti" style="padding-top:12px">
+      <div class="section-box">
+        <div class="section-box-header">
+          <h2>Progetti</h2>
+          <button class="btn-new" onclick="openProjectModal()">+ Nuovo progetto</button>
+        </div>
+        <div id="projects-list">
+          <div class="empty-state" id="projects-empty">Nessun progetto. Creane uno e aggiungi sotto-task con scadenza!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DAY VIEW MODAL -->
+<div class="day-modal-overlay" id="day-modal">
+  <div class="day-modal">
+    <div class="day-modal-header">
+      <span class="day-modal-title" id="day-modal-title"></span>
+      <button class="day-modal-close" onclick="closeDayModal()">✕</button>
+    </div>
+    <div class="day-modal-body" id="day-modal-body"></div>
+  </div>
+</div>
+
+<div class="footer">PianoMio · Sincronizzazione Google Drive · backup JSON/ICS disponibili</div>
+
+<div class="modal-overlay" id="modal-project">
+  <div class="modal">
+    <h3>Nuovo Progetto</h3>
+    <input type="text" id="modal-project-name" placeholder="Nome del progetto…" onkeydown="if(event.key==='Enter')confirmProjectModal()">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeProjectModal()">Annulla</button>
+      <button class="btn-confirm" onclick="confirmProjectModal()">Crea</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="edit-modal-overlay" id="edit-modal">
+  <div class="edit-modal">
+    <h3 id="edit-modal-title">Modifica task</h3>
+    <input type="text" id="edit-text" placeholder="Testo task…">
+    <div class="edit-modal-row">
+      <input type="date" id="edit-date" style="flex:1">
+      <select id="edit-repeat" style="flex:1">
+        <option value="">no ripetizione</option>
+        <option value="daily">ogni giorno</option>
+        <option value="weekly">ogni settimana</option>
+        <option value="monthly">ogni mese</option>
+        <option value="custom">ogni X…</option>
+      </select>
+    </div>
+    <div class="edit-modal-row" id="edit-custom-row" style="display:none">
+      <input type="number" id="edit-repeat-n" min="1" max="365" placeholder="1" style="width:80px;flex:none">
+      <select id="edit-repeat-unit">
+        <option value="days">giorni</option>
+        <option value="weeks">settimane</option>
+        <option value="months">mesi</option>
+      </select>
+    </div>
+    <div class="edit-modal-subtasks">
+      <div class="sub-label">Sotto-task</div>
+      <div id="edit-subtasks-list"></div>
+      <div class="edit-sub-add">
+        <input type="text" id="edit-sub-input" placeholder="Aggiungi sotto-task…" onkeydown="if(event.key==='Enter')addEditSubtask()">
+        <button onclick="addEditSubtask()">+</button>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeEditModal()">Annulla</button>
+      <button class="btn-confirm" onclick="confirmEdit()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('edit-repeat').addEventListener('change', function() {
+  document.getElementById('edit-custom-row').style.display = this.value === 'custom' ? 'flex' : 'none';
+  if (this.value === 'custom') document.getElementById('edit-repeat-n').value = '1';
+});
+
+let state = { weeks: {}, inbox: [], projects: [] };
+let currentWeekOffset = 0;
+
+function saveState() { try { localStorage.setItem('pianomio_v3', JSON.stringify(state)); } catch(e) {} }
+function loadState() { try { const s = localStorage.getItem('pianomio_v3'); if(s) state = JSON.parse(s); } catch(e) {} }
+
+// ═══ DATE UTILS ══════════════════════════════════════════
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function getMondayOf(offset) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const day = now.getDay();
+  now.setDate(now.getDate() + (day===0?-6:1-day) + offset*7);
+  return now;
+}
+
+function weekKeyFromMonday(m) {
+  const jan1 = new Date(m.getFullYear(), 0, 1);
+  const w = Math.ceil(((m - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return `${m.getFullYear()}-W${String(w).padStart(2,'0')}`;
+}
+
+function weekKeyFromDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day===0?-6:1-day));
+  return weekKeyFromMonday(d);
+}
+
+function dayIndexFromDate(dateStr) {
+  const day = new Date(dateStr + 'T00:00:00').getDay();
+  return day === 0 ? 6 : day - 1;
+}
+
+function formatShort(dateStr) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'short'});
+}
+
+function isOverdue(dateStr) { return dateStr && dateStr < todayStr(); }
+
+function isToday(d) {
+  const t = new Date();
+  return d.getDate()===t.getDate() && d.getMonth()===t.getMonth() && d.getFullYear()===t.getFullYear();
+}
+function isPast(d) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  const dd = new Date(d); dd.setHours(0,0,0,0);
+  return dd < t;
+}
+
+function getWeekData(offset) {
+  const monday = getMondayOf(offset);
+  const key = weekKeyFromMonday(monday);
+  if (!state.weeks[key]) state.weeks[key] = { days: Array.from({length:7}, ()=>({ important:'', importantDone:false, tasks:[] })) };
+  while (state.weeks[key].days.length < 7) state.weeks[key].days.push({ important:'', importantDone:false, tasks:[] });
+  return state.weeks[key];
+}
+
+function ensureWeekDay(dateStr) {
+  const wk = weekKeyFromDate(dateStr);
+  const di = dayIndexFromDate(dateStr);
+  if (!state.weeks[wk]) state.weeks[wk] = { days: Array.from({length:7}, ()=>({ important:'', importantDone:false, tasks:[] })) };
+  while (state.weeks[wk].days.length < 7) state.weeks[wk].days.push({ important:'', importantDone:false, tasks:[] });
+  return { wk, di, day: state.weeks[wk].days[di] };
+}
+
+// ═══ COMPUTED TASKS (never stored in weeks) ══════════════
+// Returns all inbox+project tasks that belong to a given dateStr
+function computedTasksForDate(dateStr) {
+  const today = todayStr();
+  const tasks = [];
+
+  // Check if important slot is already claimed for this date
+  const impClaimed = computedImportantForDate(dateStr);
+
+  state.inbox.forEach(item => {
+    if (!item.date || item.done) return;
+    const effectiveDate = item.date <= today ? today : item.date;
+    if (effectiveDate !== dateStr) return;
+    if (item.priority) {
+      // If this item is not the one claiming the important slot, show as regular task
+      if (!impClaimed || impClaimed.sourceId !== item.id) {
+        tasks.push({ text: item.text, done: false, source: 'inbox', sourceId: item.id, carriedFrom: item.date < today ? item.date : null });
+      }
+      return;
+    }
+    tasks.push({ text: item.text, done: false, source: 'inbox', sourceId: item.id, carriedFrom: item.date < today ? item.date : null });
+  });
+
+  state.projects.forEach(proj => {
+    proj.subtasks.forEach(sub => {
+      if (!sub.date || sub.done) return;
+      if (sub.dependsOn) {
+        const dep = proj.subtasks.find(s => s.id === sub.dependsOn);
+        if (dep && !dep.done) return;
+      }
+      const effectiveDate = sub.date <= today ? today : sub.date;
+      if (effectiveDate !== dateStr) return;
+      if (sub.priority) {
+        if (!impClaimed || impClaimed.sourceId !== sub.id) {
+          tasks.push({ text: `[${proj.name}] ${sub.text}`, done: false, source: 'project', sourceId: sub.id, projectId: proj.id, carriedFrom: sub.date < today ? sub.date : null });
+        }
+        return;
+      }
+      tasks.push({ text: `[${proj.name}] ${sub.text}`, done: false, source: 'project', sourceId: sub.id, projectId: proj.id, carriedFrom: sub.date < today ? sub.date : null });
+    });
+  });
+
+  return tasks;
+}
+
+// Returns the priority item (text) for a given dateStr from flagged inbox/project items
+function computedImportantForDate(dateStr) {
+  const today = todayStr();
+
+  for (const item of state.inbox) {
+    if (!item.date || item.done || !item.priority) continue;
+    const effectiveDate = item.date <= today ? today : item.date;
+    if (effectiveDate === dateStr) return { text: item.text, sourceId: item.id, carriedFrom: item.date < today ? item.date : null };
+  }
+
+  for (const proj of state.projects) {
+    for (const sub of proj.subtasks) {
+      if (!sub.date || sub.done || !sub.priority) continue;
+      if (sub.dependsOn) {
+        const dep = proj.subtasks.find(s => s.id === sub.dependsOn);
+        if (dep && !dep.done) continue;
+      }
+      const effectiveDate = sub.date <= today ? today : sub.date;
+      if (effectiveDate === dateStr) return { text: `[${proj.name}] ${sub.text}`, sourceId: sub.id, projectId: proj.id, carriedFrom: sub.date < today ? sub.date : null };
+    }
+  }
+
+  return null;
+}
+
+// Legacy stub — no longer needed but called in a few places
+function injectAll() { saveState(); }
+
+function syncBack(sourceId, source, done, projectId) {
+  if (source === 'inbox') {
+    const item = state.inbox.find(i => i.id === sourceId);
+    if (item) { item.done = done; }
+  } else if (source === 'project') {
+    const proj = state.projects.find(p => p.id === projectId);
+    if (proj) {
+      const sub = proj.subtasks.find(s => s.id === sourceId);
+      if (sub) sub.done = done;
+    }
+  }
+  saveState();
+}
+
+// ═══ CARRY FORWARD ═══════════════════════════════════════
+function carryForward() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const td = todayStr();
+
+  Object.keys(state.weeks).forEach(weekKey => {
+    const [yr, wk] = weekKey.split('-W');
+    const year = parseInt(yr), week = parseInt(wk);
+    const jan1 = new Date(year, 0, 1);
+    const jan1Day = jan1.getDay() || 7;
+    const monday = new Date(jan1);
+    monday.setDate(jan1.getDate() + (week-1)*7 - (jan1Day-1));
+
+    state.weeks[weekKey].days.forEach((dayObj, di) => {
+      const slot = new Date(monday); slot.setDate(monday.getDate()+di); slot.setHours(0,0,0,0);
+      if (slot >= today) return;
+
+      // Carry manual tasks (no source) that are not done
+      const manualIncomplete = dayObj.tasks.filter(t => !t.source && !t.done && !t.carried);
+      if (manualIncomplete.length) {
+        const {day: targetDay} = ensureWeekDay(td);
+        manualIncomplete.forEach(t => {
+          const dup = targetDay.tasks.some(x => x.text === t.text && !x.done && !x.source);
+          if (!dup) targetDay.tasks.push({ ...t, carried: false, carriedFrom: slot.toISOString().slice(0,10) });
+        });
+        // Remove carried tasks from origin day (keep only done ones)
+        dayObj.tasks = dayObj.tasks.filter(t => t.source || t.done);
+      }
+
+      // Carry manual important (no importantSourceId) if not done
+      if (dayObj.important && !dayObj.importantDone && !dayObj.importantSourceId) {
+        const {day: targetDay} = ensureWeekDay(td);
+        if (!targetDay.important) {
+          targetDay.important = dayObj.important;
+          targetDay.importantCarriedFrom = slot.toISOString().slice(0,10);
+        }
+        dayObj.important = '';
+        dayObj.importantDone = false;
+      }
+    });
+  });
+  saveState();
+}
+
+// ═══ RENDER WEEK ═════════════════════════════════════════
+function renderWeek() {
+  const monday = getMondayOf(currentWeekOffset);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  document.getElementById('week-label').textContent =
+    `${monday.toLocaleDateString('it-IT',{day:'numeric',month:'short'})} – ${sunday.toLocaleDateString('it-IT',{day:'numeric',month:'short'})}`;
+
+  const dayNames = ['LUN','MAR','MER','GIO','VEN','SAB','DOM'];
+  const weekData = getWeekData(currentWeekOffset);
+  const grid = document.getElementById('week-grid');
+  grid.innerHTML = '';
+
+  for (let i=0; i<7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    const dateStr = d.toISOString().slice(0,10);
+    const dayObj = weekData.days[i];
+    const cls = 'day-col' + (isToday(d)?' today':(isPast(d)?' past':''));
+    const col = document.createElement('div');
+    col.className = cls;
+
+    // Merge manual tasks with computed tasks
+    const manualTasks = (dayObj.tasks || []).filter(t => !t.source);
+    const computed = computedTasksForDate(dateStr);
+    const allTasks = [...manualTasks, ...computed];
+
+    // Important: manual takes precedence over computed
+    const computedImp = computedImportantForDate(dateStr);
+    const importantText = dayObj.important || (computedImp ? computedImp.text : '');
+    const importantDone = dayObj.importantDone || false;
+    const importantCarried = (!dayObj.important && computedImp && computedImp.carriedFrom) ? computedImp.carriedFrom : null;
+
+    col.innerHTML = `
+      <div class="day-header">
+        <span class="day-name">${dayNames[i]}</span>
+        <button class="day-num-btn" onclick="openDayModal(${i})" title="Vista giorno">${d.getDate()}</button>
+      </div>
+      <div class="day-body">
+        <div>
+          <div class="section-label">★ Priorità${importantCarried?` <span style="font-size:9px;opacity:0.5">↩ ${formatShort(importantCarried)}</span>`:''}</div>
+          <div class="important-box">
+            <div class="task-check" style="${importantDone?'background:var(--green);border-color:var(--green);':''}" onclick="toggleImportant(${i})">
+              ${importantDone?'<span style="display:block;width:6px;height:4px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translate(1px,-1px);"></span>':''}
+            </div>
+            <textarea style="flex:1;min-height:28px;border:none;background:transparent;font-family:\'DM Sans\',sans-serif;font-size:11px;resize:none;outline:none;color:var(--ink);line-height:1.4;${importantDone?'text-decoration:line-through;opacity:0.4;':''}"
+              placeholder="Cosa più importante…"
+              onchange="updateImportant(${i},this.value)">${escHtml(importantText)}</textarea>
+          </div>
+        </div>
+        <div>
+          <div class="section-label">Task</div>
+          <div class="task-list" id="tasks-${i}">
+            ${allTasks.map((t,ti)=>renderTaskItem(t,i,ti,manualTasks.length)).join('')}
+          </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="+ task manuale…" id="task-input-${i}" onkeydown="if(event.key==='Enter')addManualTask(${i})">
+            <button class="add-task-btn" onclick="addManualTask(${i})">+</button>
+          </div>
+        </div>
+      </div>`;
+    grid.appendChild(col);
+  }
+}
+
+function renderTaskItem(t, di, ti, manualCount) {
+  let badge = '';
+  if (t.carriedFrom) badge = `<span class="task-source carried-src" title="Riportata dal ${t.carriedFrom}">↩ ${formatShort(t.carriedFrom)}</span>`;
+  else if (t.source==='inbox') badge = `<span class="task-source inbox-src">inbox</span>`;
+  else if (t.source==='project') badge = `<span class="task-source project-src">prog.</span>`;
+  const subs = t.subtasks || [];
+  const subsDone = subs.filter(s=>s.done).length;
+  const subsHtml = subs.length ? `<div style="width:100%;padding-left:18px;margin-top:3px;display:flex;flex-direction:column;gap:2px;">
+    ${subs.map((s,si)=>`<div style="display:flex;align-items:center;gap:4px;font-size:10px;">
+      <div style="width:9px;height:9px;border:1.5px solid var(--ink-light);border-radius:2px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;${s.done?'background:var(--green);border-color:var(--green);':''}"
+        onclick="toggleGridSubtask(${di},${ti},${si})">
+        ${s.done?'<span style="display:block;width:5px;height:3px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translate(1px,-1px);"></span>':''}
+      </div>
+      <span style="${s.done?'text-decoration:line-through;opacity:0.4;':''}">${escHtml(s.text)}</span>
+    </div>`).join('')}
+  </div>` : '';
+
+  const isManual = !t.source;
+  // For computed tasks: toggle/delete work via source
+  const toggleFn = isManual ? `toggleGridTask(${di},${ti})` : `toggleComputedTask('${t.sourceId}','${t.source||''}','${t.projectId||''}')`;
+  const deleteFn = isManual ? `deleteGridTask(${di},${ti})` : `deleteComputedTask('${t.sourceId}','${t.source||''}')`;
+  const editFn = isManual ? `openEditGridTask(${di},${ti})` : '';
+
+  return `<div class="task-item${t.done?' done':''}" style="flex-wrap:wrap">
+    <div class="task-check" onclick="${toggleFn}" style="${t.done?'background:var(--green);border-color:var(--green);':''}">
+      ${t.done?'<span style="display:block;width:6px;height:4px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translate(1px,-1px);"></span>':''}
+    </div>
+    <span class="task-text">${escHtml(t.text)}</span>
+    ${subs.length ? `<span style="font-size:8px;color:var(--ink-light);opacity:0.6">${subsDone}/${subs.length}</span>` : ''}
+    ${badge}
+    ${editFn ? `<span class="task-edit-btn" onclick="${editFn}" title="Modifica">✎</span>` : ''}
+    <span class="task-del" onclick="${deleteFn}">✕</span>
+    ${subsHtml}
+  </div>`;
+}
+
+function toggleComputedTask(sourceId, source, projectId) {
+  if (source === 'inbox') {
+    const item = state.inbox.find(i => i.id === sourceId);
+    if (item) { item.done = !item.done; }
+  } else if (source === 'project') {
+    const proj = state.projects.find(p => p.id === projectId);
+    if (proj) { const sub = proj.subtasks.find(s => s.id === sourceId); if (sub) sub.done = !sub.done; }
+  }
+  saveState(); renderWeek(); renderInbox(); renderProjects();
+}
+
+function deleteComputedTask(sourceId, source) {
+  if (source === 'inbox') {
+    const idx = state.inbox.findIndex(i => i.id === sourceId);
+    if (idx !== -1) state.inbox.splice(idx, 1);
+  } else if (source === 'project') {
+    state.projects.forEach(proj => {
+      const idx = proj.subtasks.findIndex(s => s.id === sourceId);
+      if (idx !== -1) proj.subtasks.splice(idx, 1);
+    });
+  }
+  saveState(); renderWeek(); renderInbox(); renderProjects();
+}
+
+function toggleGridSubtask(di, ti, si) {
+  const t = getWeekData(currentWeekOffset).days[di].tasks[ti];
+  if (!t.subtasks) return;
+  t.subtasks[si].done = !t.subtasks[si].done;
+  saveState(); renderWeek();
+}
+
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function toggleImportant(di) {
+  const monday = getMondayOf(currentWeekOffset);
+  const d = new Date(monday); d.setDate(monday.getDate()+di);
+  const dateStr = d.toISOString().slice(0,10);
+  const dayObj = getWeekData(currentWeekOffset).days[di];
+
+  if (dayObj.important) {
+    // manual important — toggle in state
+    dayObj.importantDone = !dayObj.importantDone;
+  } else {
+    // computed important from flagged item
+    const comp = computedImportantForDate(dateStr);
+    if (comp) {
+      if (comp.projectId) {
+        const proj = state.projects.find(p => p.subtasks.some(s => s.id === comp.sourceId));
+        if (proj) { const sub = proj.subtasks.find(s => s.id === comp.sourceId); if (sub) sub.done = !sub.done; }
+      } else {
+        const item = state.inbox.find(i => i.id === comp.sourceId);
+        if (item) item.done = !item.done;
+      }
+    }
+  }
+  saveState(); renderWeek(); renderInbox(); renderProjects();
+}
+
+function toggleInboxPriority(i) {
+  state.inbox[i].priority = !state.inbox[i].priority;
+  saveState(); renderInbox(); renderWeek();
+}
+
+function toggleSubtaskPriority(pi, si) {
+  state.projects[pi].subtasks[si].priority = !state.projects[pi].subtasks[si].priority;
+  saveState(); renderProjects(); renderWeek();
+}
+function updateImportant(di, val) {
+  getWeekData(currentWeekOffset).days[di].important = val;
+  saveState();
+}
+function addManualTask(di) {
+  const inp = document.getElementById(`task-input-${di}`);
+  const text = inp.value.trim(); if (!text) return;
+  getWeekData(currentWeekOffset).days[di].tasks.push({ text, done: false });
+  inp.value = ''; saveState(); renderWeek();
+}
+function toggleGridTask(di, ti) {
+  const t = getWeekData(currentWeekOffset).days[di].tasks[ti];
+  t.done = !t.done;
+  if (t.source && t.sourceId) syncBack(t.sourceId, t.source, t.done, t.projectId);
+  saveState();
+  renderWeek(); renderInbox(); renderProjects();
+}
+function deleteGridTask(di, ti) {
+  getWeekData(currentWeekOffset).days[di].tasks.splice(ti,1);
+  saveState(); renderWeek(); renderInbox(); renderProjects();
+}
+
+// ═══ REPEAT SELECT TOGGLE ════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  const repeatSel = document.getElementById('inbox-repeat');
+  if (repeatSel) repeatSel.addEventListener('change', function() {
+    const show = this.value === 'custom';
+    document.getElementById('inbox-repeat-days').style.display = show ? 'inline-block' : 'none';
+    document.getElementById('inbox-repeat-unit').style.display = show ? 'inline-block' : 'none';
+    if (show) { document.getElementById('inbox-repeat-days').value = '1'; }
+  });
+});
+
+// ═══ INBOX ════════════════════════════════════════════════
+function addInboxItem() {
+  const text = document.getElementById('inbox-text').value.trim();
+  const date = document.getElementById('inbox-date').value;
+  const repeat = document.getElementById('inbox-repeat').value;
+  const customN = parseInt(document.getElementById('inbox-repeat-days').value) || 1;
+  const customUnit = document.getElementById('inbox-repeat-unit').value || 'days';
+  if (!text) return;
+  const item = {
+    id: 'inbox_' + Date.now(),
+    text,
+    date: date || null,
+    done: false,
+    subtasks: [],
+    repeat: repeat || null,
+    repeatN: repeat === 'custom' ? customN : null,
+    repeatUnit: repeat === 'custom' ? customUnit : null
+  };
+  state.inbox.push(item);
+  document.getElementById('inbox-text').value = '';
+  document.getElementById('inbox-date').value = '';
+  document.getElementById('inbox-repeat').value = '';
+  document.getElementById('inbox-repeat-days').style.display = 'none';
+  document.getElementById('inbox-repeat-unit').style.display = 'none';
+  document.getElementById('inbox-repeat-days').value = '';
+  
+  saveState(); renderInbox(); renderWeek(); updateInboxBadge();
+}
+
+function renderInbox() {
+  const chips = document.getElementById('inbox-chips');
+  if (!chips) return;
+  if (!state.inbox.length) { chips.innerHTML = ''; return; }
+  const sorted = [...state.inbox].map((item,i)=>({...item,_i:i})).sort((a,b)=>{
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1; if (!b.date) return -1;
+    return a.date.localeCompare(b.date);
+  });
+  chips.innerHTML = sorted.map(item => {
+    const subs = item.subtasks || [];
+    const subsDone = subs.filter(s=>s.done).length;
+    const subsHtml = subs.length ? `
+      <div class="chip-subtasks">
+        ${subs.map((s,si)=>`
+          <div class="chip-sub-item${s.done?' chip-sub-done':''}">
+            <div class="chip-sub-check" onclick="toggleChipSub(${item._i},${si})"></div>
+            <span class="chip-sub-text">${escHtml(s.text)}</span>
+          </div>`).join('')}
+      </div>` : '';
+    return `
+    <div class="inbox-chip-item${item.done?' done-chip':''}">
+      <div class="chip-check" onclick="toggleInbox(${item._i})"></div>
+      <span class="chip-text">${escHtml(item.text)}</span>
+      ${subs.length ? `<span style="font-size:9px;color:var(--ink-light);opacity:0.6">${subsDone}/${subs.length}</span>` : ''}
+      ${item.repeat ? `<span class="chip-repeat">🔁</span>` : ''}
+      ${item.date ? `<span class="chip-date${isOverdue(item.date)&&!item.done?' overdue':''}">${formatShort(item.date)}</span>` : ''}
+      <span class="chip-expand" onclick="openEditInbox(${item._i})" title="Modifica / sotto-task">✎</span>
+      <span style="cursor:pointer;font-size:11px;opacity:${item.priority?'1':'0.3'};transition:opacity 0.15s;" onclick="toggleInboxPriority(${item._i})" title="Segna come priorità del giorno">${item.priority?'⭐':'☆'}</span>
+      <span class="chip-del" onclick="deleteInbox(${item._i})">✕</span>
+      ${subsHtml}
+    </div>`;
+  }).join('');
+  updateInboxBadge();
+}
+
+function toggleChipSub(inboxIdx, subIdx) {
+  const item = state.inbox[inboxIdx];
+  if (!item.subtasks) return;
+  item.subtasks[subIdx].done = !item.subtasks[subIdx].done;
+  saveState(); renderInbox();
+}
+
+function updateInboxBadge() {
+  // badge no longer needed in tabs but keep function for compatibility
+  const n = state.inbox.filter(i=>!i.done).length;
+  const b = document.getElementById('inbox-badge');
+  if (b) { b.textContent = n; b.style.display = n > 0 ? 'inline' : 'none'; }
+}
+function nextOccurrence(item) {
+  if (!item.date || !item.repeat) return null;
+  const d = new Date(item.date + 'T00:00:00');
+  if (item.repeat === 'daily') d.setDate(d.getDate() + 1);
+  else if (item.repeat === 'weekly') d.setDate(d.getDate() + 7);
+  else if (item.repeat === 'monthly') d.setMonth(d.getMonth() + 1);
+  else if (item.repeat === 'custom') {
+    const n = item.repeatN || 1;
+    const unit = item.repeatUnit || item.repeatDays ? 'days' : 'days'; // back-compat
+    const days = item.repeatDays || (unit === 'days' ? n : unit === 'weeks' ? n*7 : null);
+    if (unit === 'months') d.setMonth(d.getMonth() + n);
+    else d.setDate(d.getDate() + (days || n));
+  }
+  return d.toISOString().slice(0,10);
+}
+
+function toggleInbox(i) {
+  const item = state.inbox[i];
+  item.done = !item.done;
+
+  // if repeating and just completed → schedule next occurrence
+  if (item.done && item.repeat) {
+    const next = nextOccurrence(item);
+    if (next) {
+      item.date = next;
+      item.done = false;
+    }
+  }
+
+  saveState(); renderInbox(); renderWeek();
+}
+
+function deleteInbox(i) {
+  state.inbox.splice(i,1);
+  saveState(); renderInbox(); renderWeek();
+}
+
+// ═══ PROJECTS ════════════════════════════════════════════
+function warnBlocked(el) { alert('Prima completa: ' + (el.dataset.blocked || 'task precedente')); }
+
+function renderProjects() {
+  const list = document.getElementById('projects-list');
+  if (!state.projects.length) {
+    list.innerHTML = '<div class="empty-state">Nessun progetto. Creane uno e aggiungi sotto-task con scadenza!</div>';
+    return;
+  }
+
+  list.innerHTML = state.projects.map((proj, pi) => {
+    const total = proj.subtasks.length;
+    const done = proj.subtasks.filter(s=>s.done).length;
+    const pct = total ? Math.round(done/total*100) : 0;
+
+    const subsHtml = proj.subtasks.map((sub, si) => {
+      const isBlocked = sub.dependsOn && !proj.subtasks.find(s=>s.id===sub.dependsOn)?.done;
+      const depName = sub.dependsOn ? (proj.subtasks.find(s=>s.id===sub.dependsOn)?.text||'task precedente') : '';
+      return `<div class="subtask-item${sub.done?' done-sub':''}${isBlocked?' blocked':''}">
+        <div class="subtask-check" onclick="${isBlocked ? `warnBlocked(this)` : `toggleSubtask(${pi},${si})`}" data-blocked="${isBlocked ? escHtml(depName) : ''}"></div>
+        <span class="subtask-text">${escHtml(sub.text)}</span>
+        ${sub.date?`<span class="subtask-date${isOverdue(sub.date)&&!sub.done?' overdue':''}">${formatShort(sub.date)}</span>`:''}
+        ${isBlocked?`<span class="blocked-label">⏳ attende: ${escHtml(depName.slice(0,20))}</span>`:''}
+        <span style="cursor:pointer;font-size:11px;opacity:${sub.priority?'1':'0.25'};margin-left:2px;" onclick="toggleSubtaskPriority(${pi},${si})" title="Priorità del giorno">${sub.priority?'⭐':'☆'}</span>
+        <span class="subtask-del" onclick="deleteSubtask(${pi},${si})">✕</span>
+      </div>`;
+    }).join('');
+
+    const depOpts = proj.subtasks.map((s,si)=>`<option value="${s.id}">${si+1}. ${escHtml(s.text.slice(0,28))}</option>`).join('');
+
+    return `<div class="project-card">
+      <div class="project-top">
+        <span class="project-name-text">${escHtml(proj.name)}</span>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <span class="progress-pct">${pct}%</span>
+        </div>
+        <span class="proj-del-btn" onclick="deleteProject(${pi})">✕</span>
+      </div>
+      <div class="subtask-list">${subsHtml||'<span style="font-size:11px;opacity:0.4;padding:4px">Nessuna sotto-task ancora</span>'}</div>
+      <div class="add-subtask-row">
+        <input type="text" id="sub-text-${pi}" placeholder="Nuova sotto-task…" onkeydown="if(event.key==='Enter')addSubtask(${pi})">
+        <input type="date" id="sub-date-${pi}" title="Scadenza — apparirà in griglia quel giorno">
+        <select class="dep-select" id="sub-dep-${pi}">
+          <option value="">nessuna dipendenza</option>
+          ${depOpts}
+        </select>
+        <button class="add-subtask-btn" onclick="addSubtask(${pi})">＋</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSubtask(pi, si) {
+  state.projects[pi].subtasks[si].done = !state.projects[pi].subtasks[si].done;
+  saveState(); renderProjects(); renderWeek();
+}
+
+function addSubtask(pi) {
+  const text = document.getElementById(`sub-text-${pi}`).value.trim();
+  const date = document.getElementById(`sub-date-${pi}`).value;
+  const dep = document.getElementById(`sub-dep-${pi}`).value;
+  if (!text) return;
+  state.projects[pi].subtasks.push({ id:'sub_'+Date.now(), text, date:date||null, done:false, dependsOn:dep||null });
+  document.getElementById(`sub-text-${pi}`).value = '';
+  document.getElementById(`sub-date-${pi}`).value = '';
+  saveState(); renderProjects(); renderWeek();
+}
+
+function deleteSubtask(pi, si) {
+  state.projects[pi].subtasks.splice(si,1);
+  saveState(); renderProjects(); renderWeek();
+}
+
+function deleteProject(pi) {
+  if (!confirm(`Eliminare "${state.projects[pi].name}"?`)) return;
+  state.projects.splice(pi,1);
+  saveState(); renderProjects(); renderWeek();
+}
+
+// ═══ PROJECT MODAL ════════════════════════════════════════
+function openProjectModal() { document.getElementById('modal-project').classList.add('open'); setTimeout(()=>document.getElementById('modal-project-name').focus(),50); }
+function closeProjectModal() { document.getElementById('modal-project').classList.remove('open'); document.getElementById('modal-project-name').value=''; }
+function confirmProjectModal() {
+  const name = document.getElementById('modal-project-name').value.trim(); if(!name) return;
+  state.projects.push({ id:'proj_'+Date.now(), name, subtasks:[] });
+  saveState(); renderProjects(); closeProjectModal();
+}
+document.getElementById('modal-project').addEventListener('click', function(e){ if(e.target===this) closeProjectModal(); });
+
+// ═══ TABS ════════════════════════════════════════════════
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ═══ NAV ════════════════════════════════════════════════
+function changeWeek(dir) { currentWeekOffset += dir; renderWeek(); }
+function goToday() { currentWeekOffset = 0; renderWeek(); }
+
+// ═══ EXPORT / IMPORT ════════════════════════════════════
+function exportData() {
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`pianomio-${todayStr()}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(event) {
+  const file = event.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imp = JSON.parse(e.target.result);
+      if (confirm('Importare i dati? I dati attuali verranno sostituiti.')) {
+        state = imp; saveState(); init(); alert('✅ Dati importati!');
+      }
+    } catch(err) { alert('❌ File non valido.'); }
+  };
+  reader.readAsText(file); event.target.value='';
+}
+
+// ═══ EXPORT ICS (Promemoria / Calendario) ════════════════
+function exportICS() {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//PianoMio//IT',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH'
+  ];
+
+  function icsDate(dateStr) {
+    return dateStr.replace(/-/g,'') + 'T090000';
+  }
+  function icsEscape(s) {
+    return (s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  }
+  function uid() { return 'pianomio-' + Date.now() + '-' + Math.random().toString(36).slice(2); }
+
+  let count = 0;
+
+  // Inbox tasks con data
+  state.inbox.forEach(item => {
+    if (!item.date || item.done) return;
+    lines.push('BEGIN:VTODO');
+    lines.push(`UID:${uid()}`);
+    lines.push(`DTSTAMP:${icsDate(todayStr())}`);
+    lines.push(`DUE;VALUE=DATE:${item.date.replace(/-/g,'')}`);
+    lines.push(`SUMMARY:${icsEscape(item.text)}`);
+    lines.push(`CATEGORIES:PianoMio,Inbox`);
+    lines.push(`STATUS:${item.done?'COMPLETED':'NEEDS-ACTION'}`);
+    lines.push('END:VTODO');
+    count++;
+  });
+
+  // Sotto-task progetti con data
+  state.projects.forEach(proj => {
+    proj.subtasks.forEach(sub => {
+      if (!sub.date || sub.done) return;
+      lines.push('BEGIN:VTODO');
+      lines.push(`UID:${uid()}`);
+      lines.push(`DTSTAMP:${icsDate(todayStr())}`);
+      lines.push(`DUE;VALUE=DATE:${sub.date.replace(/-/g,'')}`);
+      lines.push(`SUMMARY:${icsEscape('[' + proj.name + '] ' + sub.text)}`);
+      lines.push(`CATEGORIES:PianoMio,${icsEscape(proj.name)}`);
+      lines.push(`STATUS:${sub.done?'COMPLETED':'NEEDS-ACTION'}`);
+      lines.push('END:VTODO');
+      count++;
+    });
+  });
+
+  // Priorità giornaliere non completate
+  Object.keys(state.weeks).forEach(weekKey => {
+    const [yr, wk] = weekKey.split('-W');
+    const year = parseInt(yr), week = parseInt(wk);
+    const jan1 = new Date(year, 0, 1);
+    const jan1Day = jan1.getDay() || 7;
+    const monday = new Date(jan1);
+    monday.setDate(jan1.getDate() + (week-1)*7 - (jan1Day-1));
+
+    state.weeks[weekKey].days.forEach((dayObj, di) => {
+      if (!dayObj.important || dayObj.importantDone) return;
+      const d = new Date(monday); d.setDate(monday.getDate()+di);
+      const dateStr = d.toISOString().slice(0,10);
+      if (dateStr < todayStr()) return; // solo future o oggi
+      lines.push('BEGIN:VTODO');
+      lines.push(`UID:${uid()}`);
+      lines.push(`DTSTAMP:${icsDate(todayStr())}`);
+      lines.push(`DUE;VALUE=DATE:${dateStr.replace(/-/g,'')}`);
+      lines.push(`SUMMARY:★ ${icsEscape(dayObj.important)}`);
+      lines.push(`CATEGORIES:PianoMio,Priorità`);
+      lines.push('STATUS:NEEDS-ACTION');
+      lines.push('END:VTODO');
+      count++;
+    });
+  });
+
+  lines.push('END:VCALENDAR');
+
+  if (count === 0) { alert('Nessuna task con scadenza da esportare. Aggiungi date alle tue task nell\'Inbox o nei Progetti.'); return; }
+
+  const blob = new Blob([lines.join('\r\n')], {type:'text/calendar;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `pianomio-${todayStr()}.ics`; a.click();
+  URL.revokeObjectURL(url);
+  alert(`✅ Esportate ${count} task. Apri il file .ics per importarlo nei Promemoria o in BusyCal.`);
+}
+
+// ═══ DAY VIEW MODAL ══════════════════════════════════════
+let dayModalIndex = null;
+
+function openDayModal(di) {
+  dayModalIndex = di;
+  const monday = getMondayOf(currentWeekOffset);
+  const d = new Date(monday); d.setDate(monday.getDate() + di);
+  const dayNames = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+  const title = `${dayNames[di]} ${d.getDate()} ${d.toLocaleDateString('it-IT',{month:'long'})}`;
+  document.getElementById('day-modal-title').textContent = title;
+  renderDayModal(di);
+  document.getElementById('day-modal').classList.add('open');
+}
+
+function closeDayModal() {
+  document.getElementById('day-modal').classList.remove('open');
+  dayModalIndex = null;
+}
+
+document.getElementById('day-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeDayModal();
+});
+
+function renderDayModal(di) {
+  const dayObj = getWeekData(currentWeekOffset).days[di];
+  const body = document.getElementById('day-modal-body');
+
+  const tasksHtml = dayObj.tasks.map((t,ti) => `
+    <div class="day-modal-task-item${t.done?' done':''}" id="dmt-${di}-${ti}">
+      <div class="task-check" onclick="toggleGridTask(${di},${ti});renderDayModal(${di});renderWeek()"></div>
+      <span class="task-text">${escHtml(t.text)}</span>
+      ${t.carriedFrom ? `<span class="task-source carried-src">↩</span>` : t.source==='inbox' ? `<span class="task-source inbox-src">inbox</span>` : t.source==='project' ? `<span class="task-source project-src">prog.</span>` : ''}
+      <span class="task-del" onclick="deleteGridTask(${di},${ti});renderDayModal(${di})">✕</span>
+    </div>`).join('') || '<span style="font-size:12px;opacity:0.4">Nessuna task</span>';
+
+  body.innerHTML = `
+    <div class="day-modal-section">
+      <div class="section-label">★ Priorità del giorno</div>
+      <div class="day-modal-important">
+        <div class="task-check" style="${dayObj.importantDone?'background:var(--green);border-color:var(--green);':''}"
+          onclick="toggleImportant(${di});renderDayModal(${di})">
+          ${dayObj.importantDone?'<span style="display:block;width:6px;height:4px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translate(1px,-1px);"></span>':''}
+        </div>
+        <textarea style="${dayObj.importantDone?'text-decoration:line-through;opacity:0.4;':''}"
+          placeholder="La cosa più importante oggi…"
+          onchange="updateImportant(${di},this.value)">${escHtml(dayObj.important||'')}</textarea>
+      </div>
+    </div>
+    <div class="day-modal-section">
+      <div class="section-label">Task</div>
+      <div id="day-modal-tasks">${tasksHtml}</div>
+      <div class="day-modal-add-row" style="margin-top:8px">
+        <input class="day-modal-add-input" type="text" placeholder="+ Aggiungi task…"
+          id="day-modal-input-${di}"
+          onkeydown="if(event.key==='Enter'){addManualTask(${di});renderDayModal(${di});renderWeek()}">
+        <button class="day-modal-add-btn" onclick="addManualTask(${di});renderDayModal(${di});renderWeek()">Aggiungi</button>
+      </div>
+    </div>`;
+}
+
+// ═══ SAVE ON CLOSE ═══════════════════════════════════════
+window.addEventListener('beforeunload', () => {
+  if (gdriveToken) gdriveSave();
+});
+
+// ═══ TOKEN EXPIRY HANDLING ═══════════════════════════════
+function scheduleTokenRefresh() {
+  // Google tokens last ~1 hour, refresh after 55 minutes
+  setTimeout(() => {
+    if (!gdriveToken) return;
+    try {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: GDRIVE_CLIENT_ID,
+        scope: GDRIVE_SCOPE,
+        prompt: '',
+        callback: async (resp) => {
+          if (resp.error || !resp.access_token) {
+            updateSyncUI(false, '☁️ Sessione scaduta — <a href="#" onclick="gdriveSignIn();return false;" style="color:var(--blue)">riconnetti</a>');
+            gdriveToken = null;
+            return;
+          }
+          gdriveToken = resp.access_token;
+          localStorage.setItem('pianomio_gdrive_token', gdriveToken);
+          scheduleTokenRefresh();
+        }
+      });
+      client.requestAccessToken({ prompt: '' });
+    } catch(e) {}
+  }, 55 * 60 * 1000);
+}
+
+// ═══ GOOGLE DRIVE SYNC ═══════════════════════════════════
+const GDRIVE_CLIENT_ID = '891056487728-oa8n88i3cua882itdqg4leau8g9d3nsi.apps.googleusercontent.com';
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const GDRIVE_FILE_NAME = 'pianomio-data.json';
+
+let gdriveToken = null;
+let gdriveFileId = null;
+
+function gdriveSignIn() {
+  if (typeof google === 'undefined') {
+    alert('Libreria Google non caricata. Assicurati di essere connesso a internet.');
+    return;
+  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPE,
+    callback: async (resp) => {
+      if (resp.error) { alert('Errore autenticazione: ' + resp.error); return; }
+      gdriveToken = resp.access_token;
+      localStorage.setItem('pianomio_gdrive_token', gdriveToken);
+      updateSyncUI(true, '☁️ Connesso — sincronizzazione in corso…');
+      scheduleTokenRefresh();
+      await gdriveLoad();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function gdriveSignOut() {
+  if (gdriveToken) google.accounts.oauth2.revoke(gdriveToken);
+  gdriveToken = null; gdriveFileId = null;
+  localStorage.removeItem('pianomio_gdrive_token');
+  updateSyncUI(false, '☁️ Google Drive — non connesso');
+}
+
+function updateSyncUI(connected, statusText) {
+  document.getElementById('sync-status').innerHTML = statusText;
+  document.getElementById('btn-gdrive-connect').style.display = connected ? 'none' : 'inline-block';
+  document.getElementById('btn-gdrive-sync').style.display = connected ? 'inline-block' : 'none';
+  document.getElementById('btn-gdrive-disconnect').style.display = connected ? 'inline-block' : 'none';
+}
+
+async function gdriveFindFile() {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${GDRIVE_FILE_NAME}'&fields=files(id,name,modifiedTime)`,
+    { headers: { Authorization: `Bearer ${gdriveToken}` } }
+  );
+  const data = await res.json();
+  if (data.files && data.files.length > 0) { gdriveFileId = data.files[0].id; return data.files[0]; }
+  return null;
+}
+
+async function gdriveLoad() {
+  try {
+    const file = await gdriveFindFile();
+    if (!file) {
+      // no file yet — save current state
+      updateSyncUI(true, '☁️ Connesso — primo utilizzo, salvataggio…');
+      await gdriveSave();
+      return;
+    }
+    // compare timestamps
+    const remoteTime = new Date(file.modifiedTime).getTime();
+    const localTime = parseInt(localStorage.getItem('pianomio_last_save') || '0');
+    const localTaskCount = state.inbox.length + state.projects.length + Object.keys(state.weeks).length;
+
+    if (remoteTime > localTime && localTaskCount > 0) {
+      // remote is newer BUT there are local changes — ask user
+      const remoteDate = new Date(remoteTime).toLocaleString('it-IT', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const localDate = localTime > 0 ? new Date(localTime).toLocaleString('it-IT', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'non salvato';
+      const useRemote = confirm(
+        `⚠️ Conflitto dati\n\nDrive: aggiornato il ${remoteDate}\nLocale: aggiornato il ${localDate}\n\nQuale versione vuoi usare?\n\n"IMPORTA DA DRIVE" → usa la versione di Drive (le modifiche locali vengono perse)\n"MANTIENI LOCALE" → mantieni i dati locali e sovrascrive Drive\n\nPremi OK per importare da Drive, Annulla per mantenere il locale.`
+      );
+      if (useRemote) {
+        const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${gdriveFileId}?alt=media`,
+          { headers: { Authorization: `Bearer ${gdriveToken}` } }
+        );
+        const remote = await res.json();
+        state = remote;
+        saveState();
+        localStorage.setItem('pianomio_last_save', remoteTime.toString());
+        carryForward();
+        renderWeek(); renderInbox(); renderProjects(); updateInboxBadge();
+        updateSyncUI(true, `☁️ Sincronizzato da Drive — ${remoteDate}`);
+      } else {
+        // keep local, upload to Drive
+        await gdriveSave();
+        updateSyncUI(true, `☁️ Dati locali salvati su Drive`);
+      }
+    } else if (remoteTime > localTime) {
+      // remote newer, no local data — just download
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${gdriveFileId}?alt=media`,
+        { headers: { Authorization: `Bearer ${gdriveToken}` } }
+      );
+      const remote = await res.json();
+      state = remote;
+      saveState();
+      localStorage.setItem('pianomio_last_save', remoteTime.toString());
+      carryForward();
+      renderWeek(); renderInbox(); renderProjects(); updateInboxBadge();
+      updateSyncUI(true, `☁️ Sincronizzato — ${new Date(remoteTime).toLocaleString('it-IT', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`);
+    } else {
+      // local is newer or equal — upload
+      await gdriveSave();
+    }
+  } catch(e) {
+    updateSyncUI(true, '☁️ Connesso — errore sincronizzazione');
+    console.error(e);
+  }
+}
+
+async function gdriveSave() {
+  if (!gdriveToken) return;
+  try {
+    state.lastModified = Date.now();
+    saveState();
+    const json = JSON.stringify(state);
+    const metadata = { name: GDRIVE_FILE_NAME, parents: ['appDataFolder'] };
+
+    let res;
+    if (gdriveFileId) {
+      // update existing
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify({})], {type:'application/json'}));
+      form.append('file', new Blob([json], {type:'application/json'}));
+      res = await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${gdriveFileId}?uploadType=multipart&fields=id,modifiedTime`,
+        { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: form }
+      );
+    } else {
+      // create new
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
+      form.append('file', new Blob([json], {type:'application/json'}));
+      res = await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime`,
+        { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: form }
+      );
+    }
+    const data = await res.json();
+    if (data.id) {
+      gdriveFileId = data.id;
+      const t = new Date(data.modifiedTime).getTime();
+      localStorage.setItem('pianomio_last_save', t.toString());
+      updateSyncUI(true, `☁️ Salvato su Drive — ${new Date().toLocaleString('it-IT', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`);
+    }
+  } catch(e) {
+    updateSyncUI(true, '☁️ Connesso — errore salvataggio');
+    console.error(e);
+  }
+}
+
+// Auto-save to Drive whenever state changes (debounced)
+let gdriveSaveTimer = null;
+function scheduleGdriveSave() {
+  if (!gdriveToken) return;
+  clearTimeout(gdriveSaveTimer);
+  gdriveSaveTimer = setTimeout(gdriveSave, 3000); // save 3s after last change
+}
+
+// Patch saveState to also schedule Drive save
+const _origSaveState = saveState;
+function saveState() {
+  try { localStorage.setItem('pianomio_v3', JSON.stringify(state)); } catch(e) {}
+  scheduleGdriveSave();
+}
+
+// ═══ EDIT MODAL ══════════════════════════════════════════
+let editContext = null; // { type: 'inbox'|'grid', inboxIdx, di, ti }
+
+function openEditInbox(i) {
+  const item = state.inbox[i];
+  editContext = { type: 'inbox', inboxIdx: i };
+  document.getElementById('edit-modal-title').textContent = 'Modifica task inbox';
+  document.getElementById('edit-text').value = item.text;
+  document.getElementById('edit-date').value = item.date || '';
+  document.getElementById('edit-repeat').value = item.repeat || '';
+  const isCustom = item.repeat === 'custom';
+  document.getElementById('edit-custom-row').style.display = isCustom ? 'flex' : 'none';
+  document.getElementById('edit-repeat-n').value = item.repeatN || 1;
+  document.getElementById('edit-repeat-unit').value = item.repeatUnit || 'days';
+  renderEditSubtasks(item.subtasks || []);
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function openEditGridTask(di, ti) {
+  const t = getWeekData(currentWeekOffset).days[di].tasks[ti];
+  editContext = { type: 'grid', di, ti };
+  document.getElementById('edit-modal-title').textContent = 'Modifica task';
+  document.getElementById('edit-text').value = t.text;
+  document.getElementById('edit-date').value = '';
+  document.getElementById('edit-repeat').value = '';
+  document.getElementById('edit-custom-row').style.display = 'none';
+  renderEditSubtasks(t.subtasks || []);
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editContext = null;
+}
+
+function renderEditSubtasks(subs) {
+  const list = document.getElementById('edit-subtasks-list');
+  list.innerHTML = subs.map((s,i) => `
+    <div class="edit-sub-item${s.done?' edit-sub-done':''}">
+      <div class="edit-sub-check" onclick="toggleEditSub(${i})"></div>
+      <span class="edit-sub-text">${escHtml(s.text)}</span>
+      <span class="edit-sub-del" onclick="deleteEditSub(${i})">✕</span>
+    </div>`).join('') || '<span style="font-size:11px;opacity:0.4;padding:4px 0;display:block">Nessuna sotto-task</span>';
+}
+
+function getCurrentEditSubs() {
+  // read from DOM state
+  if (!editContext) return [];
+  if (editContext.type === 'inbox') return [...(state.inbox[editContext.inboxIdx].subtasks || [])];
+  if (editContext.type === 'grid') return [...(getWeekData(currentWeekOffset).days[editContext.di].tasks[editContext.ti].subtasks || [])];
+  return [];
+}
+
+function toggleEditSub(i) {
+  if (!editContext) return;
+  let subs;
+  if (editContext.type === 'inbox') { subs = state.inbox[editContext.inboxIdx].subtasks = state.inbox[editContext.inboxIdx].subtasks || []; }
+  else { const t = getWeekData(currentWeekOffset).days[editContext.di].tasks[editContext.ti]; subs = t.subtasks = t.subtasks || []; }
+  subs[i].done = !subs[i].done;
+  renderEditSubtasks(subs);
+}
+
+function deleteEditSub(i) {
+  if (!editContext) return;
+  let subs;
+  if (editContext.type === 'inbox') { subs = state.inbox[editContext.inboxIdx].subtasks = state.inbox[editContext.inboxIdx].subtasks || []; }
+  else { const t = getWeekData(currentWeekOffset).days[editContext.di].tasks[editContext.ti]; subs = t.subtasks = t.subtasks || []; }
+  subs.splice(i, 1);
+  renderEditSubtasks(subs);
+}
+
+function addEditSubtask() {
+  const inp = document.getElementById('edit-sub-input');
+  const text = inp.value.trim(); if (!text) return;
+  if (!editContext) return;
+  let subs;
+  if (editContext.type === 'inbox') { state.inbox[editContext.inboxIdx].subtasks = state.inbox[editContext.inboxIdx].subtasks || []; subs = state.inbox[editContext.inboxIdx].subtasks; }
+  else { const t = getWeekData(currentWeekOffset).days[editContext.di].tasks[editContext.ti]; t.subtasks = t.subtasks || []; subs = t.subtasks; }
+  subs.push({ id: 'sub_'+Date.now(), text, done: false });
+  inp.value = '';
+  renderEditSubtasks(subs);
+}
+
+function confirmEdit() {
+  if (!editContext) return;
+  const text = document.getElementById('edit-text').value.trim();
+  if (!text) return;
+  const date = document.getElementById('edit-date').value;
+  const repeat = document.getElementById('edit-repeat').value;
+  const repeatN = parseInt(document.getElementById('edit-repeat-n').value) || 1;
+  const repeatUnit = document.getElementById('edit-repeat-unit').value;
+
+  if (editContext.type === 'inbox') {
+    const item = state.inbox[editContext.inboxIdx];
+    const oldDate = item.date;
+    item.text = text;
+    item.date = date || null;
+    item.repeat = repeat || null;
+    item.repeatN = repeat === 'custom' ? repeatN : null;
+    item.repeatUnit = repeat === 'custom' ? repeatUnit : null;
+  } else {
+    const t = getWeekData(currentWeekOffset).days[editContext.di].tasks[editContext.ti];
+    t.text = text;
+  }
+  saveState(); closeEditModal(); renderInbox(); renderWeek(); renderProjects();
+}
+
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+
+// ═══ INIT ════════════════════════════════════════════════
+function init() {
+  loadState();
+  carryForward();
+
+  renderWeek();
+  renderInbox();
+  renderProjects();
+  updateInboxBadge();
+
+  // Try to reconnect Google Drive silently if previously connected
+  const savedToken = localStorage.getItem('pianomio_gdrive_token');
+  if (savedToken) {
+    // Wait for Google library to load then auto-trigger
+    function tryAutoConnect() {
+      if (typeof google !== 'undefined') {
+        try {
+          const client = google.accounts.oauth2.initTokenClient({
+            client_id: GDRIVE_CLIENT_ID,
+            scope: GDRIVE_SCOPE,
+            prompt: '',
+            callback: async (resp) => {
+              if (resp.error || !resp.access_token) return;
+              gdriveToken = resp.access_token;
+              localStorage.setItem('pianomio_gdrive_token', gdriveToken);
+              updateSyncUI(true, '☁️ Connesso — sincronizzazione in corso…');
+              scheduleTokenRefresh();
+              await gdriveLoad();
+            }
+          });
+          client.requestAccessToken({ prompt: '' });
+        } catch(e) {}
+      } else {
+        setTimeout(tryAutoConnect, 500);
+      }
+    }
+    setTimeout(tryAutoConnect, 800);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
