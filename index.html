@@ -473,6 +473,12 @@ function dateToStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+// Parse YYYY-MM-DD safely without timezone shift
+function parseDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 function getMondayOf(offset) {
   const now = new Date(); now.setHours(0,0,0,0);
   const day = now.getDay();
@@ -487,19 +493,19 @@ function weekKeyFromMonday(m) {
 }
 
 function weekKeyFromDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
+  const d = parseDate(dateStr);
   const day = d.getDay();
   d.setDate(d.getDate() + (day===0?-6:1-day));
   return weekKeyFromMonday(d);
 }
 
 function dayIndexFromDate(dateStr) {
-  const day = new Date(dateStr + 'T00:00:00').getDay();
+  const day = parseDate(dateStr).getDay();
   return day === 0 ? 6 : day - 1;
 }
 
 function formatShort(dateStr) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'short'});
+  return parseDate(dateStr).toLocaleDateString('it-IT', {day:'numeric', month:'short'});
 }
 
 function isOverdue(dateStr) { return dateStr && dateStr < todayStr(); }
@@ -946,7 +952,7 @@ function updateInboxBadge() {
 }
 function nextOccurrence(item) {
   if (!item.date || !item.repeat) return null;
-  const d = new Date(item.date + 'T00:00:00');
+  const d = parseDate(item.date);
   if (item.repeat === 'daily') d.setDate(d.getDate() + 1);
   else if (item.repeat === 'weekly') d.setDate(d.getDate() + 7);
   else if (item.repeat === 'monthly') d.setMonth(d.getMonth() + 1);
