@@ -241,7 +241,9 @@ header {
 .subtask-date.overdue { color: var(--accent); }
 .blocked-label { font-size: 9px; color: var(--orange); background: var(--orange-soft); border-radius: 3px; padding: 1px 5px; white-space: nowrap; }
 .subtask-del { opacity: 0; cursor: pointer; font-size: 9px; transition: opacity 0.15s; }
+.subtask-edit { opacity: 0; cursor: pointer; font-size: 10px; transition: opacity 0.15s; margin-left: auto; }
 .subtask-item:hover .subtask-del { opacity: 0.4; }
+.subtask-item:hover .subtask-edit { opacity: 0.5; }
 .subtask-del:hover { opacity: 1 !important; color: var(--accent); }
 
 .add-subtask-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding-left: 4px; margin-top: 4px; }
@@ -531,17 +533,17 @@ function computedTasksForDate(dateStr) {
   const impClaimed = computedImportantForDate(dateStr);
 
   state.inbox.forEach(item => {
-    if (!item.date || item.done) return;
-    const effectiveDate = item.date <= today ? today : item.date;
+    if (item.done) return;
+    // items without date appear in today only
+    const effectiveDate = (!item.date || item.date <= today) ? today : item.date;
     if (effectiveDate !== dateStr) return;
     if (item.priority) {
-      // If this item is not the one claiming the important slot, show as regular task
       if (!impClaimed || impClaimed.sourceId !== item.id) {
-        tasks.push({ text: item.text, done: false, source: 'inbox', sourceId: item.id, carriedFrom: item.date < today ? item.date : null });
+        tasks.push({ text: item.text, done: false, source: 'inbox', sourceId: item.id, carriedFrom: item.date && item.date < today ? item.date : null });
       }
       return;
     }
-    tasks.push({ text: item.text, done: false, source: 'inbox', sourceId: item.id, carriedFrom: item.date < today ? item.date : null });
+    tasks.push({ text: item.text, done: false, source: 'inbox', sourceId: item.id, carriedFrom: item.date && item.date < today ? item.date : null });
   });
 
   state.projects.forEach(proj => {
@@ -626,19 +628,19 @@ function carryForward() {
       if (slot >= today) return;
 
       // Carry manual tasks (no source) that are not done
-      const manualIncomplete = dayObj.tasks.filter(t => !t.source && !t.done && !t.carried);
+      const manualIncomplete = dayObj.tasks.filter(t => !t.source && !t.done);
       if (manualIncomplete.length) {
         const {day: targetDay} = ensureWeekDay(td);
         manualIncomplete.forEach(t => {
-          const dup = targetDay.tasks.some(x => x.text === t.text && !x.done && !x.source);
-          if (!dup) targetDay.tasks.push({ ...t, carried: false, carriedFrom: slot.toISOString().slice(0,10) });
+          const dup = targetDay.tasks.some(x => !x.source && x.text === t.text && !x.done);
+          if (!dup) targetDay.tasks.push({ ...t, carriedFrom: slot.toISOString().slice(0,10) });
         });
-        // Remove carried tasks from origin day (keep only done ones)
+        // Remove incomplete manual tasks from origin day
         dayObj.tasks = dayObj.tasks.filter(t => t.source || t.done);
       }
 
-      // Carry manual important (no importantSourceId) if not done
-      if (dayObj.important && !dayObj.importantDone && !dayObj.importantSourceId) {
+      // Carry manual important if not done
+      if (dayObj.important && !dayObj.importantDone) {
         const {day: targetDay} = ensureWeekDay(td);
         if (!targetDay.important) {
           targetDay.important = dayObj.important;
@@ -646,6 +648,7 @@ function carryForward() {
         }
         dayObj.important = '';
         dayObj.importantDone = false;
+        dayObj.importantCarriedFrom = null;
       }
     });
   });
@@ -990,6 +993,7 @@ function renderProjects() {
         ${sub.date?`<span class="subtask-date${isOverdue(sub.date)&&!sub.done?' overdue':''}">${formatShort(sub.date)}</span>`:''}
         ${isBlocked?`<span class="blocked-label">⏳ attende: ${escHtml(depName.slice(0,20))}</span>`:''}
         <span style="cursor:pointer;font-size:11px;opacity:${sub.priority?'1':'0.25'};margin-left:2px;" onclick="toggleSubtaskPriority(${pi},${si})" title="Priorità del giorno">${sub.priority?'⭐':'☆'}</span>
+        <span class="subtask-edit" onclick="openEditSubtask(${pi},${si})" title="Modifica">✎</span>
         <span class="subtask-del" onclick="deleteSubtask(${pi},${si})">✕</span>
       </div>`;
     }).join('');
@@ -1038,6 +1042,24 @@ function addSubtask(pi) {
 function deleteSubtask(pi, si) {
   state.projects[pi].subtasks.splice(si,1);
   saveState(); renderProjects(); renderWeek();
+}
+
+function openEditSubtask(pi, si) {
+  const sub = state.projects[pi].subtasks[si];
+  editContext = { type: 'subtask', pi, si };
+  document.getElementById('edit-text').value = sub.text;
+  document.getElementById('edit-date').value = sub.date || '';
+  document.getElementById('edit-repeat-row').style.display = 'none';
+  document.getElementById('edit-subs-section').style.display = 'none';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function saveEditSubtask() {
+  const { pi, si } = editContext;
+  const sub = state.projects[pi].subtasks[si];
+  sub.text = document.getElementById('edit-text').value.trim() || sub.text;
+  sub.date = document.getElementById('edit-date').value || null;
+  saveState(); closeEditModal(); renderProjects(); renderWeek();
 }
 
 function deleteProject(pi) {
@@ -1538,6 +1560,9 @@ function confirmEdit() {
     item.repeat = repeat || null;
     item.repeatN = repeat === 'custom' ? repeatN : null;
     item.repeatUnit = repeat === 'custom' ? repeatUnit : null;
+  } else if (editContext.type === 'subtask') {
+    saveEditSubtask();
+    return;
   } else {
     const t = getWeekData(currentWeekOffset).days[editContext.di].tasks[editContext.ti];
     t.text = text;
